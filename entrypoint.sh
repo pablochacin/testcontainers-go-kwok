@@ -9,7 +9,4 @@ kwokctl create cluster \
    --kwok-controller-binary /usr/local/bin/kwok \
    --wait 30s
 
-# by default, the kwok controller will start without nodes, so we need to scale it to 1
-kwokctl scale node --replicas 1
-
 sleep infinity
