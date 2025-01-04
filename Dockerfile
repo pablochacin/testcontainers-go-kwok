@@ -25,6 +25,4 @@ RUN wget https://github.com/kubernetes-sigs/kwok/releases/download/${KWOK_VERSIO
 
 COPY entrypoint.sh /entrypoint.sh
 
-STOPSIGNAL SIGKILL
-
 CMD ["/entrypoint.sh"]

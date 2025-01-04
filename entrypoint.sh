@@ -1,5 +1,13 @@
 #!/bin/sh
 
+function trap_terminate() {
+  echo "Terminating..."
+  kwokctl delete cluster
+  exit 0
+}
+
+trap trap_terminate SIGTERM
+
 kwokctl create cluster \
    --runtime binary \
    --kube-scheduler-binary /usr/local/bin/kube-scheduler \
@@ -9,4 +17,5 @@ kwokctl create cluster \
    --kwok-controller-binary /usr/local/bin/kwok \
    --wait 30s
 
-sleep infinity
+# Wait forever in the background to allow the trap to work
+sleep infinity & wait $!
