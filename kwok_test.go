@@ -13,7 +13,7 @@ import (
 func TestKwok(t *testing.T) {
 	ctx := context.Background()
 
-	ctr, err := kwok.Run(ctx, "ghcr.io/pablochacin/kwok:latest")
+	ctr, err := kwok.Run(ctx, "ghcr.io/pablochacin/kwok:latest", kwok.WithNodes(2))
 	testcontainers.CleanupContainer(t, ctr)
 	require.NoError(t, err)
 }
