@@ -5,6 +5,8 @@ ARG ETCD_VERSION=v3.5.17
 ARG KUBE_VERSION=v1.31.4
 ARG ARCH=amd64
 
+RUN apk add --no-cache git
+
 RUN wget https://dl.k8s.io/${KUBE_VERSION}/bin/linux/${ARCH}/kube-apiserver -O /usr/local/bin/kube-apiserver && \
     wget https://dl.k8s.io/${KUBE_VERSION}/bin/linux/${ARCH}/kube-controller-manager -O /usr/local/bin/kube-controller-manager && \
     wget https://dl.k8s.io/${KUBE_VERSION}/bin/linux/${ARCH}/kube-scheduler -O /usr/local/bin/kube-scheduler && \
@@ -22,6 +24,9 @@ RUN wget https://github.com/kubernetes-sigs/kwok/releases/download/${KWOK_VERSIO
     wget https://github.com/kubernetes-sigs/kwok/releases/download/${KWOK_VERSION}/kwokctl-linux-${ARCH} -O /usr/local/bin/kwokctl && \
     chmod +x /usr/local/bin/kwok && \
     chmod +x /usr/local/bin/kwokctl
+
+# install pod controller stages to get proper simulation of pod events
+RUN /usr/local/bin/kubectl kustomize https://github.com/kubernetes-sigs/kwok/kustomize/stage/pod/general > stages.yaml
 
 COPY entrypoint.sh /entrypoint.sh
 

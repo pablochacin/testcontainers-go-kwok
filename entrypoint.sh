@@ -9,6 +9,7 @@ function trap_terminate() {
 trap trap_terminate SIGTERM
 
 kwokctl create cluster \
+   --config stages.yaml \
    --runtime binary \
    --kube-scheduler-binary /usr/local/bin/kube-scheduler \
    --kube-controller-manager-binary /usr/local/bin/kube-controller-manager \
