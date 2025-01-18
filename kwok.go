@@ -8,27 +8,9 @@ import (
 	"github.com/testcontainers/testcontainers-go/wait"
 )
 
-
 // Container represents the Kwok container type used in the module
 type Container struct {
 	testcontainers.Container
-}
-
-
-// WithNodes is a container customizer that sets the number of nodes in the cluster
-func WithNodes(nodes int) testcontainers.CustomizeRequestOption {
-	return func(req *testcontainers.GenericContainerRequest) error {
-		req.LifecycleHooks = append(req.LifecycleHooks, testcontainers.ContainerLifecycleHooks{
-			PostReadies: []testcontainers.ContainerHook{
-				func(ctx context.Context, c testcontainers.Container) error {
-					_, _, err := c.Exec(ctx, []string{"kwokctl", "scale", "node", "--replicas", fmt.Sprintf("%d", nodes)})
-					return err
-				},
-			},
-		})
-
-		return nil
-	}
 }
 
 // Run creates an instance of the Kwok container type
@@ -38,7 +20,16 @@ func Run(ctx context.Context, image string, opts ...testcontainers.ContainerCust
 			Image:        image,
 			ExposedPorts: []string{"6443/tcp"},
 			WaitingFor: wait.ForLog("Cluster is ready"),
-
+			LifecycleHooks: []testcontainers.ContainerLifecycleHooks{
+				{
+					PostReadies: []testcontainers.ContainerHook{
+						func(ctx context.Context, c testcontainers.Container) error {
+							_, _, err := c.Exec(ctx, []string{"kwokctl", "scale", "node", "--replicas", "1"})
+							return err
+						},
+					},
+				},
+			},
 		},
 		Started: true,
 	}
@@ -54,7 +45,7 @@ func Run(ctx context.Context, image string, opts ...testcontainers.ContainerCust
 	if container != nil {
 		c = &Container{Container: container}
 	}
-	
+
 	return c, err
 }
 
