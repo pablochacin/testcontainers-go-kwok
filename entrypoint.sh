@@ -16,6 +16,7 @@ kwokctl create cluster \
    --etcd-binary /usr/local/bin/etcd \
    --kube-apiserver-binary /usr/local/bin/kube-apiserver \
    --kwok-controller-binary /usr/local/bin/kwok \
+   --kube-apiserver-port 6443 \
    --wait 30s
 
 # Wait forever in the background to allow the trap to work
