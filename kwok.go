@@ -1,20 +1,28 @@
 package kwok
 
 import (
+	"bytes"
 	"context"
 	"fmt"
+	"regexp"
 
+	"github.com/docker/go-connections/nat"
 	"github.com/testcontainers/testcontainers-go"
+	"github.com/testcontainers/testcontainers-go/exec"
 	"github.com/testcontainers/testcontainers-go/wait"
 )
 
-// Container represents the Kwok container type used in the module
-type Container struct {
+const defaultKubeSecurePort = "6443/tcp"
+
+var serverRe = regexp.MustCompile(`https:\/\/127.0.0.1:[0-9]+`)
+
+// KwokContainer represents the Kwok container type used in the module
+type KwokContainer struct {
 	testcontainers.Container
 }
 
 // Run creates an instance of the Kwok container type
-func Run(ctx context.Context, image string, opts ...testcontainers.ContainerCustomizer) (*Container, error) {
+func Run(ctx context.Context, image string, opts ...testcontainers.ContainerCustomizer) (*KwokContainer, error) {
 	genericContainerReq := testcontainers.GenericContainerRequest{
 		ContainerRequest: testcontainers.ContainerRequest{
 			Image:        image,
@@ -41,11 +49,44 @@ func Run(ctx context.Context, image string, opts ...testcontainers.ContainerCust
 	}
 
 	container, err := testcontainers.GenericContainer(ctx, genericContainerReq)
-	var c *Container
+	var c *KwokContainer
 	if container != nil {
-		c = &Container{Container: container}
+		c = &KwokContainer{Container: container}
 	}
 
 	return c, err
 }
 
+// GetKubeConfig returns the modified kubeconfig with server url
+func (c *KwokContainer) GetKubeConfig(ctx context.Context) ([]byte, error) {
+	hostIP, err := c.Host(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get hostIP: %w", err)
+	}
+
+	mappedPort, err := c.MappedPort(ctx, nat.Port(defaultKubeSecurePort))
+	if err != nil {
+		return nil, fmt.Errorf("failed to get mapped port: %w", err)
+	}
+
+	_, output, err := c.Exec(ctx, []string{"kwokctl", "get", "kubeconfig"}, exec.Multiplexed())
+	if err != nil {
+		return nil, fmt.Errorf("failed to get kubeconfig from container: %w", err)
+	}
+
+	kubeConfigYaml := &bytes.Buffer{}
+	_, err = kubeConfigYaml.ReadFrom(output)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read file from container: %w", err)
+	}
+
+	if !serverRe.MatchString(kubeConfigYaml.String()) {
+		return nil, fmt.Errorf("failed to edit kubeconfig: api server url not found")
+	}
+	modifiedKubeconfig := serverRe.ReplaceAllString(
+		kubeConfigYaml.String(),
+		fmt.Sprintf("https://%s:%s", hostIP, mappedPort.Port()),
+	)
+
+	return []byte(modifiedKubeconfig), nil
+}
