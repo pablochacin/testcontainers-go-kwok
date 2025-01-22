@@ -10,6 +10,8 @@ import (
 	"github.com/testcontainers/testcontainers-go"
 	"github.com/testcontainers/testcontainers-go/exec"
 	"github.com/testcontainers/testcontainers-go/wait"
+	"k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/tools/clientcmd"
 )
 
 const defaultKubeSecurePort = "6443/tcp"
@@ -89,4 +91,24 @@ func (c *KwokContainer) GetKubeConfig(ctx context.Context) ([]byte, error) {
 	)
 
 	return []byte(modifiedKubeconfig), nil
+}
+
+// GetClient returns a Kubernetes client to access the cluster
+func (c *KwokContainer) GetClient(ctx context.Context) (*kubernetes.Clientset, error) {
+	kubeConfigYaml , err := c.GetKubeConfig(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	restcfg, err := clientcmd.RESTConfigFromKubeConfig(kubeConfigYaml)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create rest config: %w", err)
+	}
+
+	k8s, err := kubernetes.NewForConfig(restcfg)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create client: %w", err)
+	}
+
+	return k8s, nil
 }
